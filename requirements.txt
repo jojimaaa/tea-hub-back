@@ -1,0 +1,30 @@
+fastapi
+uvicorn[standard]
+
+# Banco/Postgres
+SQLAlchemy>=2.0
+psycopg2-binary     # (ou asyncpg se quiser assíncrono)
+alembic
+python-dotenv
+
+# ETL / dados
+pandas
+pyarrow             # to_parquet / performance
+requests
+tqdm
+pydantic
+
+# Geo e mapas (opcional, útil c/ IBGE e shapefiles)
+geopandas
+shapely
+folium              # mapas interativos simples
+
+# Métricas/estatística
+numpy
+scipy
+statsmodels
+scikit-learn
+
+# Visualização
+matplotlib
+plotly
