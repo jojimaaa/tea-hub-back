@@ -2,6 +2,12 @@ from datetime import datetime
 from pydantic import BaseModel, EmailStr
 from uuid import UUID
 
+class UserCreate(BaseModel):
+    name: str
+    username: str
+    email: EmailStr
+    password: str
+
 class LoginBase(BaseModel):
     id: UUID
     name: str
@@ -19,12 +25,6 @@ class WikiBase(BaseModel):
     body: str
     author_name: str
     topic_id: UUID
-
-class UserCreate(BaseModel):
-    name: str
-    username: str
-    email: EmailStr
-    password: str
 
 class UserResponse(BaseModel):
     id: UUID
