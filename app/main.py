@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from .routers import data_routes, auth_routes, wiki_routes
+from .routes import data_routes, auth_routes, wiki_routes
 from .database import engine
 from . import models
 

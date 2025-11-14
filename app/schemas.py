@@ -2,29 +2,29 @@ from datetime import datetime
 from pydantic import BaseModel, EmailStr
 from uuid import UUID
 
-class UserCreate(BaseModel):
+class UserSchema(BaseModel):
     name: str
     username: str
     email: EmailStr
     password: str
 
-class LoginBase(BaseModel):
-    id: UUID
-    name: str
-    username: str
+class LoginSchema(BaseModel):
     email: str
-    fl_admin: str
-    passwordhash: str
+    password: str
     
-class Token(BaseModel):
+class TokenSchema(BaseModel):
     access_token: str
     token_type: str
     
-class WikiBase(BaseModel):
+class WikiPostSchema(BaseModel):
     title: str
     body: str
     author_name: str
-    topic_id: UUID
+    topic_id: str
+    image_url: str
+    
+class WikiTopicSchema(BaseModel):
+    name: str
 
 class UserResponse(BaseModel):
     id: UUID
