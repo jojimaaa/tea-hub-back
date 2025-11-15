@@ -1,10 +1,24 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from .routes import data_routes, auth_routes, wiki_routes
 from .database import engine
 from . import models
 
 app = FastAPI()
+
+origins = [
+    "http://localhost:3000",
+    "http://192.168.56.1:3000"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 models.Base.metadata.create_all(bind=engine)
 
