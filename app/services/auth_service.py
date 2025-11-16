@@ -13,11 +13,11 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login-form")
 
 SECRET_KEY = "chave_super_secreta"  # use uma variável de ambiente!
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 1
 
-def create_access_token(email: str, duration: int = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)):
+def create_access_token(name:str, username: str, duration: int = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)):
     expire = datetime.now(timezone.utc) + duration 
-    payload = {"sub": email, "exp": expire} 
+    payload = {"sub": username, "name":name, "exp": expire} 
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 def get_password_hash(password: str):
@@ -37,13 +37,13 @@ def verify_token(
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
+        username: str = payload.get("sub")
+        if username is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
 
-    user = db.query(User).filter(User.email == email).first()
+    user = db.query(User).filter(User.username == username).first()
     if user is None:
         raise credentials_exception 
     

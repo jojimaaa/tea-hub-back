@@ -13,7 +13,10 @@ class LoginSchema(BaseModel):
     password: str
     
 class TokenSchema(BaseModel):
+    username: str
+    name: str
     access_token: str
+    refresh_token: str
     token_type: str
     
 class WikiPostSchema(BaseModel):

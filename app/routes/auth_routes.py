@@ -47,19 +47,27 @@ def login(
 ):
     user = (
         db.query(models.User)
-        .filter(models.User.email == form_data.username)
+        .filter(models.User.email == form_data.email)
         .first()
     )
     
+
     if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, 
             detail="Credenciais inválidas"
         )
         
-    access_token = create_access_token(user.email)
-    refresh_token = create_access_token(user.email, timedelta(hours=3))
-    return {"username": user.username, "name": user.name,"access_token": access_token, "refresh_token": refresh_token,"token_type": "Bearer"}
+    access_token = create_access_token(user.name, user.username)
+    refresh_token = create_access_token(user.name, user.username, timedelta(minutes=1))
+
+    print(user.username)
+    print(user.name)
+    print(access_token)
+    print(refresh_token)
+    response = {"username": user.username, "name": user.name,"access_token": access_token, "refresh_token": refresh_token,"token_type": "Bearer"}
+
+    return response
 
 @router.post("/login-form", response_model=TokenSchema)
 def login(
@@ -78,12 +86,12 @@ def login(
             detail="Credenciais inválidas"
         )
         
-    access_token = create_access_token(user.email)
+    access_token = create_access_token(user.name, user.username)
     return {"username": user.username, "name": user.name,"access_token": access_token, "token_type": "Bearer"}
 
 @router.get("/refresh-token")
 def refresh_token(user: validation_dependency):
-    access_token = create_access_token(user.email)
+    access_token = create_access_token(user.name, user.username)
     
     return{
         "access_token": access_token,
