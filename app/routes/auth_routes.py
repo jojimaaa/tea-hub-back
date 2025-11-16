@@ -59,7 +59,7 @@ def login(
         )
         
     access_token = create_access_token(user.name, user.username)
-    refresh_token = create_access_token(user.name, user.username, timedelta(minutes=1))
+    refresh_token = create_access_token(user.name, user.username, timedelta(hours=4))
 
     print(user.username)
     print(user.name)

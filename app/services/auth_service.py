@@ -13,7 +13,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login-form")
 
 SECRET_KEY = "chave_super_secreta"  # use uma variável de ambiente!
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 1
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 def create_access_token(name:str, username: str, duration: int = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)):
     expire = datetime.now(timezone.utc) + duration 
