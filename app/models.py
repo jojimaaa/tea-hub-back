@@ -1,5 +1,3 @@
-# app/models.py
-
 from datetime import datetime
 import uuid
 
@@ -17,11 +15,12 @@ class WikiPosts(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = Column(String(255), nullable=False)
+    normalized_title = Column(String(255), nullable=False)
     body = Column(Text, nullable=False)
     author_name = Column(String(255), nullable=False)
     created_date = Column(DateTime, default=datetime.utcnow)
-    topic_id = Column(UUID(as_uuid=True), nullable=False)
-
+    topic_id = Column(String, ForeignKey("tb_wiki_topics.id"))
+    image_url = Column(String(255))
 
 class User(Base):
     __tablename__ = 'tb_users'
@@ -31,7 +30,13 @@ class User(Base):
     username = Column(String(255))
     email = Column(String(255))
     fl_admin = Column(Boolean)
-    passwordhash = Column(String(255))
+    password_hash = Column(String(255))
+    
+class WikiTopics(Base):
+    __tablename__ = 'tb_wiki_topics'
+    
+    id = Column(String(255), primary_key=True, default=lambda: f"topic_{uuid.uuid4().hex}")
+    name = Column(String(255))
 
 
 # ----------------- MÓDULO DE DADOS -----------------
