@@ -108,20 +108,27 @@ async def edit_wiki_post(
     return wiki_post
 
 @router.post("/upload-wiki-post")
-async def make_wiki_post(    
-    title: str,
-    body: str,
-    author_name: str,
-    topic_id: str,
+async def make_wiki_post(
     db: db_dependency,
-    image: UploadFile = File(...)
+    title: str = Form(...),
+    body: str = Form(...),
+    author_name: str = Form(...),
+    topic_id: str = Form(...),
+    image: UploadFile = File(...),
 ):
-    topic = db.query(models.WikiTopics).filter(models.WikiTopics.id == topic_id).first()
+    topic = (
+        db.query(models.WikiTopics)
+        .filter(models.WikiTopics.id == topic_id)
+        .first()
+    )
     if not topic:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='This topic does not exists')    
-    
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This topic does not exists",
+        )
+
     image_url = await upload_image_to_cloudinary(image)
-    
+
     new_post = models.WikiPosts(
         title=title,
         normalized_title=normalize(title),
@@ -129,16 +136,24 @@ async def make_wiki_post(
         author_name=author_name,
         created_date=datetime.now(),
         topic_id=topic_id,
-        image_url = image_url
+        image_url=image_url,
     )
-    
-    if (db.query(models.WikiPosts).filter(models.WikiPosts.normalized_title == new_post.normalized_title).first()):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='This title already exists')
-    
+
+    if (
+        db.query(models.WikiPosts)
+        .filter(models.WikiPosts.normalized_title == new_post.normalized_title)
+        .first()
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This title already exists",
+        )
+
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
     return new_post
+
 
 @router.get("/{wiki_title}")
 async def get_wiki_post(wiki_title: str, db: db_dependency):
