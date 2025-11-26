@@ -1,6 +1,6 @@
 import unicodedata
 from rapidfuzz import fuzz, process, utils
-from app.models import WikiPosts
+from app.models.wiki import WikiPosts
 
 def normalize(text: str) -> str:
     text = text.lower().replace(" ", "_").strip()

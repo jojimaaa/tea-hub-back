@@ -2,16 +2,12 @@ from datetime import datetime
 from pydantic import BaseModel, EmailStr
 from uuid import UUID
 
-class UserSchema(BaseModel):
-    name: str
-    username: str
-    email: EmailStr
-    password: str
-
+# ---------- LOGIN ----------
 class LoginSchema(BaseModel):
     email: str
     password: str
-    
+  
+# ---------- TOKEN ----------    
 class TokenSchema(BaseModel):
     username: str
     name: str
@@ -19,20 +15,10 @@ class TokenSchema(BaseModel):
     refresh_token: str
     token_type: str
     
-class WikiPostSchema(BaseModel):
-    title: str
-    body: str
-    author_name: str
-    topic_id: str
-    image_url: str
-    
-class WikiTopicSchema(BaseModel):
-    name: str
-
 class UserResponse(BaseModel):
     id: UUID
     email: str
 
     model_config = {
         "from_attributes": True
-    }
+    }    

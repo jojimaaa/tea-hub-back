@@ -4,7 +4,7 @@ from passlib.context import CryptContext
 from app.database import db_dependency
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from app.models import *
+from app.models.user import *
 from typing import Annotated
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -49,4 +49,4 @@ def verify_token(
     
     return user
 
-validation_dependency = Annotated[User, Depends(verify_token)]
+user_dependency = Annotated[User, Depends(verify_token)]
