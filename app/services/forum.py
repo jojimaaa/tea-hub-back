@@ -1,5 +1,4 @@
 from sqlalchemy import event
-from sqlalchemy.orm import Mapper
 from app.models.forum import ForumPosts, ForumComments
 import base36
 from app.schemas.forum import *
@@ -7,63 +6,158 @@ from app.schemas.user import *
 from app.models.forum import *
 from app.models.user import *
 from app.database import db_dependency
+from fastapi import HTTPException, status
+from app.services.auth import user_dependency
+
 
 @event.listens_for(ForumPosts, "after_insert")
 def generate_id36(mapper, connection, target):
     id36 = base36.dumps(target.id)
     connection.execute(
         ForumPosts.__table__.update()
-            .where(ForumPosts.id == target.id)
-            .values(id36=id36)
+        .where(ForumPosts.id == target.id)
+        .values(id36=id36)
     )
-    
+
+
 @event.listens_for(ForumComments, "after_insert")
 def generate_id36(mapper, connection, target):
     id36 = base36.dumps(target.id)
     connection.execute(
         ForumComments.__table__.update()
-            .where(ForumComments.id == target.id)
-            .values(id36=id36)
+        .where(ForumComments.id == target.id)
+        .values(id36=id36)
     )
-    
-    
-def get_comments(id: int, db: db_dependency) -> list[ForumCommentOut]:
-    comments = db.query(ForumComments).filter(ForumComments.parent_id == id).all()
+
+
+def get_user(user_id: int, db: db_dependency) -> User:
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(
+            status=status.HTTP_400_BAD_REQUEST, details="User not found."
+        )
+    return user
+
+
+def get_user_dto(user: user_dependency) -> UserDTO:
+    user_dto = UserDTO(username=user.username, name=user.name)
+    return user_dto
+
+
+def get_op_user_dto(user_id: int, db: db_dependency) -> UserDTO:
+    try:
+        op_user = get_user(user_id, db)
+        op_user_dto = get_user_dto(op_user)
+    except Exception:
+        op_user_dto = UserDTO(username="", name="Usuário deletado")
+    return op_user_dto
+
+
+def get_topic(topic_id: int, db: db_dependency) -> ForumTopics:
+    topic = db.query(ForumTopics).filter(ForumTopics.id == topic_id).first()
+    if topic is None:
+        raise HTTPException(
+            status=status.HTTP_400_BAD_REQUEST, detail="Topic not found."
+        )
+    return topic
+
+
+def get_topic_dto(topic: ForumTopics) -> ForumTopicOut:
+    topic_dto = ForumTopicOut(id=base36.dumps(topic.id), name=topic.name)
+    return topic_dto
+
+
+def get_post(post_id: int, db: db_dependency) -> ForumPosts:
+    post = db.query(ForumPosts).filter(ForumPosts.id == post_id).first()
+    if post is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Post not found."
+        )
+    return post
+
+
+def get_post_dto(
+    user: user_dependency, post: ForumPosts, db: db_dependency
+) -> ForumTopicOut:
+    post_dto = ForumPostOut(
+        id=base36.dumps(post.id),
+        title=post.title,
+        body=post.body,
+        topic=get_topic_dto(get_topic(post.topic_id, db)),
+        user=get_op_user_dto(post.user_id, db),
+        created_at=post.created_at,
+        comments=get_post_comments(user, post.id, db),
+        like_count=post.like_count,
+        liked_by_me=get_liked_by_me(
+            user.id, post.id, ForumPostLikes, ForumPostLikes.post_id, db
+        ),
+    )
+    return post_dto
+
+
+def get_comment(comment_id: int, db: db_dependency) -> ForumComments:
+    comment = db.query(ForumComments).filter(ForumComments.id == comment_id).first()
+    if not comment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, details="Comment not found."
+        )
+    return comment
+
+
+def get_comment_dto(
+    user: user_dependency, comment: ForumComments, db: db_dependency
+) -> ForumCommentOut:
+    comment_out = ForumCommentOut(
+        id=base36.dumps(comment.id),
+        body=comment.body,
+        user=get_op_user_dto(comment.user_id, db),
+        post_id=base36.dumps(comment.post_id),
+        parent_id=base36.dumps(comment.parent_id) if comment.parent_id else None,
+        created_at=comment.created_at,
+        like_count=comment.like_count,
+        liked_by_me=get_liked_by_me(
+            user.id, comment.id, ForumCommentLikes, ForumCommentLikes.comment_id, db
+        ),
+        comments=get_sub_comments(user, comment.id, db),
+    )
+    return comment_out
+
+
+def get_post_comments(user: user_dependency, post_id: int, db: db_dependency):
+    comments = (
+        db.query(ForumComments)
+        .filter((ForumComments.post_id == post_id) & (ForumComments.parent_id == None))
+        .all()
+    )
+
+    tree = []
+    for comment in comments:
+        tree.append(get_comment_dto(user, comment, db))
+
+    return tree
+
+
+def get_sub_comments(
+    user: user_dependency, comment_id: int, db: db_dependency
+) -> list[ForumCommentOut]:
+    comments = (
+        db.query(ForumComments).filter(ForumComments.parent_id == comment_id).all()
+    )
 
     comments_out: list[ForumCommentOut] = []
 
     for comment in comments:
-        
-        user = db.query(User).filter(User.id == comment.user_id).first()
-        
-        user_dto = UserDTO(
-            username = user.username,
-            name = user.name
-        )
+        comments_out.append(get_comment_dto(user, comment, db))
 
-        comment_out = ForumCommentOut(
-                id = base36.dumps(comment.id),
-                body = comment.body,
-                user = user_dto,
-                post_id = base36.dumps(comment.post_id),
-                parent_id = base36.dumps(comment.parent_id),
-                created_at = comment.created_at,
-                like_count = comment.like_count,
-                liked_by_me = False,
-                comments = [] 
-            )
-        
-        comment_out.comments = get_comments(comment.id, db)
-        
-        if (db.query(ForumPostLikes)
-            .filter(
-                (ForumPostLikes.post_id == comment.id) & 
-                (ForumPostLikes.user_id == comment.user_id)
-            )
-            .first()
-            is not None
-        ):
-            comment_out.liked_by_me = True
-        
-        comments_out.append(comment_out)
     return comments_out
+
+
+def get_liked_by_me(user_id: int, id: int, Model, field, db: db_dependency) -> bool:
+    return (
+        db.query(Model).filter((field == id) & (Model.user_id == user_id)).first()
+        is not None
+    )
+
+
+def get_like(user_id: int, id: int, Model, field, db: db_dependency):
+    return db.query(Model).filter((field == id) & (Model.user_id == user_id)).first()
