@@ -44,7 +44,7 @@ class ForumCommentOut(BaseModel):
 class ForumPostCreate(BaseModel):
     title: str
     body: str
-    topic_id: int
+    topic_id: str
 
 
 class ForumPostUpdate(BaseModel):

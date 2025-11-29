@@ -71,7 +71,7 @@ async def get_forum_post(post_id36: str, user: user_dependency, db: db_dependenc
 @router.get("/search", response_model=list[ForumPostOut])
 async def search_forum_post(
     db: db_dependency,
-    user: user_dependency,
+    # user: user_dependency,
     topic_id: str | None = None,
     created_from: datetime | None = None,
     username: str | None = None,
@@ -96,7 +96,8 @@ async def search_forum_post(
 
     posts_out = []
     for post in posts:
-        posts_out.append(get_post_dto(user, post, db))
+        post_user = db.query(User).filter(User.id == post.user_id).first()
+        posts_out.append(get_post_dto(post_user, post, db))
 
     return posts_out
 
@@ -107,7 +108,7 @@ async def submit_forum_post(
 ):
 
     new_post = ForumPosts(
-        title=post.title, body=post.body, user_id=user.id, topic_id=post.topic_id
+        title=post.title, body=post.body, user_id=user.id, topic_id=base36.loads(post.topic_id)
     )
 
     db.add(new_post)
