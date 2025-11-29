@@ -177,7 +177,7 @@ async def get_comments_endpoint(
     return comments
 
 
-@router.get("post/{post_id36}/comment/{comment_id36}", response_model=ForumCommentOut)
+@router.get("/post/{post_id36}/comment/{comment_id36}", response_model=ForumCommentOut)
 async def get_comment_endpoint(
     comment_id36: str, user: user_dependency, db: db_dependency
 ):
