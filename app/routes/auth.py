@@ -65,7 +65,9 @@ async def refresh_token(db: db_dependency, authorization: str = Header(None)):
 
     if not authorization.startswith("Bearer "):
         raise HTTPException(401, "Formato do token inválido")
-    
+    elif not len(authorization.split("Bearer "))==2:
+        raise HTTPException(401, "É necessário um token válido para continuar")
+
     token = authorization.split("Bearer ")[1]
     
     user = verify_token(db, token) 

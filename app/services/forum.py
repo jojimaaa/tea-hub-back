@@ -44,10 +44,17 @@ def get_user_dto(user: user_dependency) -> UserDTO:
     return user_dto
 
 
-def get_op_user_dto(user_id: int, db: db_dependency) -> UserDTO:
+def get_op_user_dto_by_id(user_id: int, db: db_dependency) -> UserDTO:
     try:
         op_user = get_user(user_id, db)
         op_user_dto = get_user_dto(op_user)
+    except Exception:
+        op_user_dto = UserDTO(username="", name="Usuário deletado")
+    return op_user_dto
+
+def get_op_user_dto(user :user_dependency) -> UserDTO:
+    try:
+        op_user_dto = get_user_dto(user)
     except Exception:
         op_user_dto = UserDTO(username="", name="Usuário deletado")
     return op_user_dto
@@ -77,20 +84,29 @@ def get_post(post_id: int, db: db_dependency) -> ForumPosts:
 
 
 def get_post_dto(
-    user: user_dependency, post: ForumPosts, db: db_dependency
+    post: ForumPosts, db: db_dependency, req_user : User | None = None
 ) -> ForumTopicOut:
+    
+    user = db.query(User).filter(User.id == post.user_id).first()
+
+    likedByMe = False
+
+    print(req_user)
+    print(user)
+    
+    if(req_user is not None): likedByMe = get_liked_by_me(req_user.id, post.id, ForumPostLikes, ForumPostLikes.post_id, db)
+
+
     post_dto = ForumPostOut(
         id=base36.dumps(post.id),
         title=post.title,
         body=post.body,
         topic=get_topic_dto(get_topic(post.topic_id, db)),
-        user=get_op_user_dto(post.user_id, db),
+        user=get_op_user_dto(user),
         created_at=post.created_at,
-        comments=get_post_comments(user, post.id, db),
+        comments=get_post_comments(post.id, db, req_user),
         like_count=post.like_count,
-        liked_by_me=get_liked_by_me(
-            user.id, post.id, ForumPostLikes, ForumPostLikes.post_id, db
-        ),
+        liked_by_me= likedByMe,
     )
     return post_dto
 
@@ -105,25 +121,28 @@ def get_comment(comment_id: int, db: db_dependency) -> ForumComments:
 
 
 def get_comment_dto(
-    user: user_dependency, comment: ForumComments, db: db_dependency
+    comment: ForumComments, db: db_dependency, req_user : User | None = None
 ) -> ForumCommentOut:
+    
+    likedByMe = False
+    
+    if(req_user is not None): likedByMe = get_liked_by_me(req_user.id, comment.id, ForumCommentLikes, ForumCommentLikes.comment_id, db)
+
     comment_out = ForumCommentOut(
         id=base36.dumps(comment.id),
         body=comment.body,
-        user=get_op_user_dto(comment.user_id, db),
+        user=get_op_user_dto_by_id(comment.user_id, db),
         post_id=base36.dumps(comment.post_id),
         parent_id=base36.dumps(comment.parent_id) if comment.parent_id else None,
         created_at=comment.created_at,
         like_count=comment.like_count,
-        liked_by_me=get_liked_by_me(
-            user.id, comment.id, ForumCommentLikes, ForumCommentLikes.comment_id, db
-        ),
-        comments=get_sub_comments(user, comment.id, db),
+        liked_by_me=likedByMe,
+        comments=get_sub_comments(comment.id, db, req_user),
     )
     return comment_out
 
 
-def get_post_comments(user: user_dependency, post_id: int, db: db_dependency):
+def get_post_comments(post_id: int, db: db_dependency, req_user : User | None = None):
     comments = (
         db.query(ForumComments)
         .filter((ForumComments.post_id == post_id) & (ForumComments.parent_id == None))
@@ -132,13 +151,13 @@ def get_post_comments(user: user_dependency, post_id: int, db: db_dependency):
 
     tree = []
     for comment in comments:
-        tree.append(get_comment_dto(user, comment, db))
+        tree.append(get_comment_dto(comment, db, req_user))
 
     return tree
 
 
 def get_sub_comments(
-    user: user_dependency, comment_id: int, db: db_dependency
+    comment_id: int, db: db_dependency, req_user : User | None = None
 ) -> list[ForumCommentOut]:
     comments = (
         db.query(ForumComments).filter(ForumComments.parent_id == comment_id).all()
@@ -147,7 +166,7 @@ def get_sub_comments(
     comments_out: list[ForumCommentOut] = []
 
     for comment in comments:
-        comments_out.append(get_comment_dto(user, comment, db))
+        comments_out.append(get_comment_dto(comment, db, req_user))
 
     return comments_out
 

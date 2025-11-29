@@ -1,6 +1,8 @@
-from fastapi import APIRouter, HTTPException, status
+from typing import Annotated
+from fastapi import APIRouter, HTTPException, Header, status
 from app.database import db_dependency
-from app.services.auth import user_dependency
+from app.routes.user import getReqUserByHeader
+from app.services.auth import user_dependency, verify_token
 from app.schemas.forum import *
 from app.services.forum import *
 from app.models.forum import *
@@ -60,10 +62,14 @@ async def delete_topic(topic_id: int, db: db_dependency):
 
 
 @router.get("/post/{post_id36}", response_model=ForumPostOut)
-async def get_forum_post(post_id36: str, user: user_dependency, db: db_dependency):
+async def get_forum_post(post_id36: str, db: db_dependency, authorization : str = Header(None)):
+
+    req_user = getReqUserByHeader(authorization, db)
+
+    print(req_user)
     post_id = base36.loads(post_id36)
     post = get_post(post_id, db)
-    post_out = get_post_dto(user, post, db)
+    post_out = get_post_dto(post, db, req_user)
 
     return post_out
 
@@ -71,7 +77,7 @@ async def get_forum_post(post_id36: str, user: user_dependency, db: db_dependenc
 @router.get("/search", response_model=list[ForumPostOut])
 async def search_forum_post(
     db: db_dependency,
-    # user: user_dependency,
+    authorization : str = Header(None),
     topic_id: str | None = None,
     created_from: datetime | None = None,
     username: str | None = None,
@@ -79,6 +85,8 @@ async def search_forum_post(
 ):
     posts_query = db.query(ForumPosts)
     filters = []
+    
+    req_user = getReqUserByHeader(authorization, db)
 
     if topic_id is not None:
         filters.append(ForumPosts.topic_id == topic_id)
@@ -96,8 +104,7 @@ async def search_forum_post(
 
     posts_out = []
     for post in posts:
-        post_user = db.query(User).filter(User.id == post.user_id).first()
-        posts_out.append(get_post_dto(post_user, post, db))
+        posts_out.append(get_post_dto(post, db, req_user))
 
     return posts_out
 
@@ -169,21 +176,27 @@ async def delete_post(user: user_dependency, post_id36: str, db: db_dependency):
 
 @router.get("/post/{post_id36}/comments", response_model=list[ForumCommentOut])
 async def get_comments_endpoint(
-    post_id36: str, user: user_dependency, db: db_dependency
+    post_id36: str, db: db_dependency, authorization : str = Header(None)
 ):
     post_id = base36.loads(post_id36)
 
-    comments = get_post_comments(user, post_id, db)
+    req_user = getReqUserByHeader(authorization, db)
+
+
+    comments = get_post_comments(post_id, db, req_user)
 
     return comments
 
 
 @router.get("/post/{post_id36}/comment/{comment_id36}", response_model=ForumCommentOut)
 async def get_comment_endpoint(
-    comment_id36: str, user: user_dependency, db: db_dependency
+    comment_id36: str, db: db_dependency, authorization : str = Header(None)
 ):
+    
+    req_user = getReqUserByHeader(authorization, db)
+
     comment_id = base36.loads(comment_id36)
-    return get_comment_dto(user, get_comment(comment_id, db), db)
+    return get_comment_dto(get_comment(comment_id, db), db, req_user)
 
 
 @router.post("/post/{post_id36}/comment", response_model=ForumCommentOut)

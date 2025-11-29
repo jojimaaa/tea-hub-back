@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from app.database import db_dependency
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Header, status
 from fastapi.security import OAuth2PasswordBearer
 from app.models.user import *
 from typing import Annotated
