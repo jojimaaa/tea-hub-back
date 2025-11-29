@@ -97,7 +97,7 @@ async def search_forum_post(
         filters.append(ForumPosts.user_id == user.id)
     if filters:
         posts_query = posts_query.filter(*filters)
-    posts = posts_query.all()
+    posts = posts_query.order_by(ForumPosts.created_at.desc()).all()
 
     if title is not None:
         posts = search_by_title(title, posts, amount=15)
@@ -115,14 +115,14 @@ async def submit_forum_post(
 ):
 
     new_post = ForumPosts(
-        title=post.title, body=post.body, user_id=user.id, topic_id=base36.loads(post.topic_id)
+        title=post.title, body=post.body, user_id=user.id, topic_id=post.topic_id
     )
 
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
 
-    post_out = get_post_dto(user, new_post, db)
+    post_out = get_post_dto(new_post, db, req_user = user)
 
     return post_out
 
@@ -149,7 +149,7 @@ async def edit_forum_post(
     db.commit()
     db.refresh(post)
 
-    post_out = get_post_dto(user, post, db)
+    post_out = get_post_dto(post, db, req_user = user)
 
     return post_out
 
@@ -220,7 +220,7 @@ async def submit_comment(
     db.commit()
     db.refresh(new_comment)
 
-    comment_out = get_comment_dto(user, new_comment, db)
+    comment_out = get_comment_dto(new_comment, db, req_user = user)
 
     return comment_out
 
@@ -252,7 +252,7 @@ async def edit_comment(
     db.commit()
     db.refresh(comment)
 
-    comment_out = get_comment_dto(user, comment, db)
+    comment_out = get_comment_dto(comment, db, req_user = user)
 
     return comment_out
 
@@ -309,7 +309,7 @@ async def toggle_post_like(post_id36: str, user: user_dependency, db: db_depende
 
 
 @router.post(
-    "/post/{post_id36}/comment/{comment_id36}/like", response_model=CommentLikeOut
+    "/comment/{comment_id36}/like", response_model=CommentLikeOut
 )
 async def toggle_comment_like(
     comment_id36: str, user: user_dependency, db: db_dependency

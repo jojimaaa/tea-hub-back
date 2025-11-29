@@ -70,7 +70,7 @@ def get_topic(topic_id: int, db: db_dependency) -> ForumTopics:
 
 
 def get_topic_dto(topic: ForumTopics) -> ForumTopicOut:
-    topic_dto = ForumTopicOut(id=base36.dumps(topic.id), name=topic.name)
+    topic_dto = ForumTopicOut(id=topic.id, name=topic.name)
     return topic_dto
 
 
@@ -137,7 +137,6 @@ def get_comment_dto(
         created_at=comment.created_at,
         like_count=comment.like_count,
         liked_by_me=likedByMe,
-        comments=get_sub_comments(comment.id, db, req_user),
     )
     return comment_out
 
@@ -145,15 +144,16 @@ def get_comment_dto(
 def get_post_comments(post_id: int, db: db_dependency, req_user : User | None = None):
     comments = (
         db.query(ForumComments)
-        .filter((ForumComments.post_id == post_id) & (ForumComments.parent_id == None))
+        .filter(ForumComments.post_id == post_id)
+        .order_by(ForumComments.created_at)
         .all()
     )
 
-    tree = []
+    dtos = []
     for comment in comments:
-        tree.append(get_comment_dto(comment, db, req_user))
+        dtos.append(get_comment_dto(comment, db, req_user))
 
-    return tree
+    return dtos
 
 
 def get_sub_comments(

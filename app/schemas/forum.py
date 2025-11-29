@@ -14,7 +14,7 @@ class ForumTopicSchema(BaseModel):
 
 
 class ForumTopicOut(BaseModel):
-    id: str
+    id: int
     name: str
 
 
@@ -37,19 +37,19 @@ class ForumCommentOut(BaseModel):
     created_at: datetime | str
     like_count: int
     liked_by_me: bool
-    comments: list["ForumCommentOut"]
 
 
 # ---------- POSTS ----------
 class ForumPostCreate(BaseModel):
     title: str
     body: str
-    topic_id: str
+    topic_id: int
 
 
 class ForumPostUpdate(BaseModel):
     title: Optional[str]
     body: Optional[str]
+    topic_id: Optional[int]
 
 
 class ForumPostOut(BaseModel):

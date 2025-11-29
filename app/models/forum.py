@@ -11,7 +11,7 @@ class ForumPosts(Base):
     id36 = Column(String(255), unique=True)
     title = Column(String(255))
     body = Column(Text)
-    topic_id = Column(String(255))
+    topic_id = Column(Integer)
     user_id = Column(Integer)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     like_count = Column(Integer, default = 0)
