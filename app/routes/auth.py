@@ -58,7 +58,7 @@ def login(
 
     return response
 
-@router.post("/auth/refresh")
+@router.post("/refresh")
 async def refresh_token(db: db_dependency, authorization: str = Header(None)):
     if not authorization:
         raise HTTPException(401, "Authorization header obrigatório")
