@@ -28,7 +28,7 @@ def get_post(post_id: int, db: db_dependency) -> WikiPosts:
     return post
 
 
-def get_post_dto(post: WikiPosts):
+def get_post_dto(post: WikiPosts, db: db_dependency):
     post_out = WikiPostOut(
         id=post.id,
         title=post.title,
@@ -36,7 +36,7 @@ def get_post_dto(post: WikiPosts):
         body=post.body,
         author_name=post.author_name,
         created_date=post.created_date,
-        topic_id=post.topic_id,
+        topic=get_topic_dto(get_topic(post.topic_id, db)),
         image_url=post.image_url,
     )
     return post_out
