@@ -11,8 +11,9 @@ origins = [
     "http://localhost:3001",
     "http://192.168.56.1:3000",
     "http://192.168.56.1:3001",
-    "tea-hub-front-dev-git-feat-forumlist-enzos-projects-b920b2f9.vercel.app",
-    "tea-hub-front-qmigvonx3-enzos-projects-b920b2f9.vercel.app",
+    "https://tea-hub-front-dev-git-develop-enzos-projects-b920b2f9.vercel.app", # develop
+    "https://tea-hub-front-dev.vercel.app",
+    "https://tea-hub-front-dev-git-feat-forumlist-enzos-projects-b920b2f9.vercel.app"
 ]
 
 app.add_middleware(
