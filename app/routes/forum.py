@@ -55,14 +55,16 @@ async def delete_topic(topic_id: int, db: db_dependency):
     topic = get_topic(topic_id, db)
     db.delete(topic)
     db.commit()
-    return {"message": f"Tópico {topic.name}"}
+    return {"message": f'Topic "{topic.name}" deleted'}
 
 
 # ---------------- POSTS ----------------
 
 
 @router.get("/post/{post_id36}", response_model=ForumPostOut)
-async def get_forum_post(post_id36: str, db: db_dependency, authorization : str = Header(None)):
+async def get_forum_post(
+    post_id36: str, db: db_dependency, authorization: str = Header(None)
+):
 
     req_user = getReqUserByHeader(authorization, db)
 
@@ -77,7 +79,7 @@ async def get_forum_post(post_id36: str, db: db_dependency, authorization : str 
 @router.get("/search", response_model=list[ForumPostOut])
 async def search_forum_post(
     db: db_dependency,
-    authorization : str = Header(None),
+    authorization: str = Header(None),
     topic_id: str | None = None,
     created_from: datetime | None = None,
     username: str | None = None,
@@ -85,7 +87,7 @@ async def search_forum_post(
 ):
     posts_query = db.query(ForumPosts)
     filters = []
-    
+
     req_user = getReqUserByHeader(authorization, db)
 
     if topic_id is not None:
@@ -122,7 +124,7 @@ async def submit_forum_post(
     db.commit()
     db.refresh(new_post)
 
-    post_out = get_post_dto(new_post, db, req_user = user)
+    post_out = get_post_dto(new_post, db, req_user=user)
 
     return post_out
 
@@ -138,7 +140,7 @@ async def edit_forum_post(
     if post.user_id != user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Usuário deve ser autor do post para poder editar",
+            detail="You must be the post author to edit this post.",
         )
 
     updates = data.model_dump(exclude_unset=True)
@@ -149,7 +151,7 @@ async def edit_forum_post(
     db.commit()
     db.refresh(post)
 
-    post_out = get_post_dto(post, db, req_user = user)
+    post_out = get_post_dto(post, db, req_user=user)
 
     return post_out
 
@@ -163,12 +165,12 @@ async def delete_post(user: user_dependency, post_id36: str, db: db_dependency):
     if post.user_id != user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Usuário deve ser autor do post para poder deletar",
+            detail="You must be the post author to delete this post.",
         )
 
     db.delete(post)
     db.commit()
-    return {"message": "Post deletado"}
+    return {"message": "Post deleted"}
 
 
 # ---------------- COMMENTS ----------------
@@ -176,12 +178,11 @@ async def delete_post(user: user_dependency, post_id36: str, db: db_dependency):
 
 @router.get("/post/{post_id36}/comments", response_model=list[ForumCommentOut])
 async def get_comments_endpoint(
-    post_id36: str, db: db_dependency, authorization : str = Header(None)
+    post_id36: str, db: db_dependency, authorization: str = Header(None)
 ):
     post_id = base36.loads(post_id36)
 
     req_user = getReqUserByHeader(authorization, db)
-
 
     comments = get_post_comments(post_id, db, req_user)
 
@@ -190,9 +191,9 @@ async def get_comments_endpoint(
 
 @router.get("/post/{post_id36}/comment/{comment_id36}", response_model=ForumCommentOut)
 async def get_comment_endpoint(
-    comment_id36: str, db: db_dependency, authorization : str = Header(None)
+    comment_id36: str, db: db_dependency, authorization: str = Header(None)
 ):
-    
+
     req_user = getReqUserByHeader(authorization, db)
 
     comment_id = base36.loads(comment_id36)
@@ -220,7 +221,7 @@ async def submit_comment(
     db.commit()
     db.refresh(new_comment)
 
-    comment_out = get_comment_dto(new_comment, db, req_user = user)
+    comment_out = get_comment_dto(new_comment, db, req_user=user)
 
     return comment_out
 
@@ -241,7 +242,7 @@ async def edit_comment(
     if comment.user_id != user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            details="Somente o autor do comentário tem permissão de edição",
+            details="You must be the comment author to edit this comment.",
         )
 
     updates = edited_comment.model_dump(exclude_unset=True)
@@ -252,7 +253,7 @@ async def edit_comment(
     db.commit()
     db.refresh(comment)
 
-    comment_out = get_comment_dto(comment, db, req_user = user)
+    comment_out = get_comment_dto(comment, db, req_user=user)
 
     return comment_out
 
@@ -266,12 +267,12 @@ async def delete_comment(comment_id36: str, user: user_dependency, db: db_depend
     if comment.user_id != user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            details="Somente o autor do comentário tem permissão de edição",
+            details="You must be the comment author to delete this comment.",
         )
 
     db.delete(comment)
     db.commit()
-    return {"message": "Comentário apagado."}
+    return {"message": "Comment deleted."}
 
 
 # ---------------------- LIKES -------------------------
@@ -308,9 +309,7 @@ async def toggle_post_like(post_id36: str, user: user_dependency, db: db_depende
     return like_out
 
 
-@router.post(
-    "/comment/{comment_id36}/like", response_model=CommentLikeOut
-)
+@router.post("/comment/{comment_id36}/like", response_model=CommentLikeOut)
 async def toggle_comment_like(
     comment_id36: str, user: user_dependency, db: db_dependency
 ):

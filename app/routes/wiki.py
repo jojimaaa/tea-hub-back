@@ -1,82 +1,91 @@
-from fastapi import HTTPException, APIRouter, status, UploadFile, File, Form
+from fastapi import HTTPException, APIRouter, status, UploadFile, File
 from fastapi.responses import RedirectResponse
 from app.database import db_dependency
+from app.services.wiki import *
 from app.schemas.wiki import *
 from app.models.wiki import *
 from datetime import datetime
 from app.utils import normalize, search_by_title
 from app.services.cloudinary import upload_image_to_cloudinary
 from datetime import timedelta
+from sqlalchemy import func
+from random import randint
 
 router = APIRouter(prefix="/wiki", tags=["Wiki"])
 
-@router.get("/topics")
-async def get_wiki_topics(db: db_dependency):
-    topics = [name for (name,) in db.query(WikiTopics.name).all()]
-    return topics
 
-@router.post("/topics", response_model=WikiTopicSchema)
-async def create_topic(topic: WikiTopicSchema, db: db_dependency):
-    new_topic = WikiTopics(
-        name = topic.name
-    )
-    
-    if (db.query(WikiTopics).filter(WikiTopics.name == new_topic.name).first()):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tópico já existe"
-        )
+# ------------------- TOPICS --------------------
+
+
+@router.get("/topics", response_model=list[WikiTopicOut])
+async def get_wiki_topics(db: db_dependency):
+    topics = db.query(WikiTopics).all()
+    topics_out = []
+    for topic in topics:
+        topics_out.append(get_topic_dto(topic))
+    return topics_out
+
+
+@router.post("/topics", response_model=WikiTopicOut)
+async def create_topic(topic: WikiTopicCreate, db: db_dependency):
+    check_for_topic_name(topic.name, db)
+
+    new_topic = WikiTopics(name=topic.name)
 
     db.add(new_topic)
     db.commit()
     db.refresh(new_topic)
-    return new_topic
 
-@router.patch("/topics/{topic_id}", response_model=WikiPostSchema)
-async def edit_topic(topic_id: int, new_name: str, db: db_dependency):
-    topic = db.query(WikiTopics).filter(WikiTopics.id == topic_id).first()
-    if not topic:
-        raise HTTPException(status_code=404, detail="Topic not found")
-    
-    if new_name is not None:
-        topic.name = new_name
-    
-    topic.name = new_name
+    topic_out = get_topic_dto(new_topic)
+
+    return topic_out
+
+
+@router.patch("/topics/{topic_id}", response_model=WikiTopicOut)
+async def edit_topic(topic_id: int, data: WikiTopicCreate, db: db_dependency):
+    topic = get_topic(topic_id, db)
+
+    check_for_topic_name(data.name, db)
+
+    topic.name = data.name
     db.commit()
     db.refresh(topic)
-    return topic
+
+    topic_out = get_topic_dto(topic)
+
+    return topic_out
+
 
 @router.delete("/topics/{topic_id}")
 async def delete_topic(topic_id: int, db: db_dependency):
-    topic = db.query(WikiTopics).filter(WikiTopics.id == topic_id).first()
-    if not topic:
-        raise HTTPException(status_code=404, detail="Topic not found")
-
+    topic = get_topic(topic_id, db)
     db.delete(topic)
     db.commit()
-    return {"message": f"Tópico \"{topic.name}\" deletado."}
+    return {"message": f'Topic "{topic.name}" deleted.'}
 
-@router.get("/search")
-async def get_wiki_post_list(
+
+# ------------------- POSTS --------------------
+
+
+@router.get("/search", response_model=list[WikiPostOut])
+async def search_posts(
     db: db_dependency,
-    topic_id: str | None = None, 
-    created_date: datetime | None = None,
+    topic_id: str | None = None,
+    created_from: datetime | None = None,
     author_name: str | None = None,
-    title: str | None = None
+    title: int | None = None,
 ):
     filters = []
-    
+
     if topic_id is not None:
         filters.append(WikiPosts.topic_id == topic_id)
-    if created_date is not None:
-        next_day = created_date + timedelta(days=1)
-        filters.append(WikiPosts.created_date >= created_date)
-        filters.append(WikiPosts.created_date < next_day)
+    if created_from is not None:
+        filters.append(WikiPosts.created_date >= created_from)
     if author_name is not None:
         filters.append(WikiPosts.author_name == author_name)
-        
+
     posts_query = db.query(WikiPosts)
-    
+
     if filters:
         posts_query = posts_query.filter(*filters)
 
@@ -85,35 +94,62 @@ async def get_wiki_post_list(
     if title is not None:
         posts = search_by_title(title, posts, amount=15)
 
-    return posts
+    posts_out = []
 
-@router.get("/recommended")
+    for post in posts:
+        post_out = get_post_dto(post)
+        posts_out.append(post_out)
+
+    return posts_out
+
+
+@router.get("/recommended", response_model=list[WikiPostOut])
 async def get_recommended_posts(db: db_dependency):
-    posts = (
-        db.query(WikiPosts)
-        .order_by(WikiPosts.created_date.desc())
-        .limit(4)
-        .all()
-    )
-    return posts    
+    min_id, max_id = db.query(func.min(WikiPosts.id), func.max(WikiPosts.id)).first()
 
-@router.patch("/edit/{title}", response_model=WikiPostSchema)
-async def edit_wiki_post(
-    db: db_dependency, 
-    title: str,
-    data: WikiPostUpdateSchema
-):
-    post = (
-        db.query(WikiPosts)
-        .filter(WikiPosts.normalized_title == title)
-        .first()
-    )
-    
-    if not post:
-        raise HTTPException(404, "Post não encontrado")
-    
-    if db.query(WikiPosts).filter(WikiPosts.title == data.title).first() is not None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, message="This title already exists!")
+    if min_id is None:
+        return []
+
+    total_posts = db.query(func.count(WikiPosts.id)).scalar()
+
+    limit = min(4, total_posts)
+
+    posts_out: list[WikiPostOut] = []
+
+    taken_ids = set()
+
+    while len(posts_out) < limit:
+        random_id = randint(min_id, max_id)
+        if random_id in taken_ids:
+            continue
+        try:
+            post = get_post(random_id, db)
+        except HTTPException as e:
+            if e.status_code == status.HTTP_404_NOT_FOUND:
+                continue
+            raise
+        if post is not None:
+            taken_ids.add(random_id)
+            posts_out.append(get_post_dto(post))
+
+    return posts_out
+
+
+@router.get("/recent", response_model=list[WikiPostOut])
+async def get_recent_posts(db: db_dependency):
+    posts = db.query(WikiPosts).order_by(WikiPosts.created_date.desc()).limit(4).all()
+    posts_out: list[WikiPostOut] = []
+    for post in posts:
+        post_out = get_post_dto(post)
+        posts_out.append(post_out)
+    return posts_out
+
+
+@router.patch("/edit/{id}", response_model=WikiPostOut)
+async def edit_wiki_post(db: db_dependency, id: int, data: WikiPostUpdate):
+    post = get_post(id, db)
+
+    check_for_title(data.title)
 
     for attr, value in data.model_dump(exclude_unset=True).items():
         if attr == "title":
@@ -122,69 +158,64 @@ async def edit_wiki_post(
         else:
             setattr(post, attr, value)
 
-    if data.image_url is not None:
-        post.image_url = await upload_image_to_cloudinary(data.image_url)
+    if data.image is not None:
+        post.image_url = await upload_image_to_cloudinary(data.image)
 
     db.commit()
     db.refresh(post)
 
-    return post
+    post_out = get_post_dto(post)
 
-@router.post("/upload-wiki-post", response_model=WikiPostSchema)
-async def create_wiki_post(    
+    return post_out
+
+
+@router.post("/upload-wiki-post", response_model=WikiPostOut)
+async def create_wiki_post(
     title: str,
     body: str,
     author_name: str,
     topic_id: str,
     db: db_dependency,
-    image: UploadFile = File(...)
+    image: UploadFile = File(...),
 ):
-    topic = db.query(WikiTopics).filter(WikiTopics.id == topic_id).first()
-    if not topic:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='This topic does not exists')    
-    
+    topic = get_topic(topic_id, db)
     image_url = await upload_image_to_cloudinary(image)
-    
+
+    check_for_title(title, db)
+
     new_post = WikiPosts(
         title=title,
         normalized_title=normalize(title),
         body=body,
         author_name=author_name,
         created_date=datetime.now(),
-        topic_id=topic_id,
-        image_url = image_url
+        topic_id=topic.id,
+        image_url=image_url,
     )
-    
-    if (db.query(WikiPosts).filter(WikiPosts.normalized_title == new_post.normalized_title).first()):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='This title already exists')
-    
+
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
-    return new_post
 
-@router.delete("/{post_id}")
-async def delete_wiki_post(post_id: int, db: db_dependency):
-    post = db.query(WikiPosts).filter(WikiPosts.id == post_id).first()
-    if post_id is None:
-        raise HTTPException(status_code=404, detail="Wiki post not found")
+    post_out = get_post_dto(new_post)
+
+    return post_out
+
+
+@router.delete("/{id}")
+async def delete_wiki_post(id: int, db: db_dependency):
+    post = get_post(id, db)
 
     db.delete(post)
     db.commit()
-    return {"message": f"Tópico \"{post.name}\" deletado."}
+    return {"message": f'Post "{post.title}" deleted.'}
 
-@router.get("/{title}", response_model=WikiPostSchema)
-async def get_wiki_post(title: str, db: db_dependency):
-    
-    title_formatted = normalize(title)
-    
-    post = db.query(WikiPosts).filter(WikiPosts.normalized_title == title_formatted).first()
-    
-    if not post:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Wiki Post not found')   
-    
-    if (post.normalized_title != title):
-        canonical_url = f"/wiki/{title_formatted}"
-        return RedirectResponse(url=canonical_url, status_code=301)
 
-    return post
+@router.get("/{id}", response_model=WikiPostOut)
+async def get_wiki_post(id: int, db: db_dependency):
+
+    post = get_post(id, db)
+
+    post_out = get_post_dto(post)
+
+    return post_out
