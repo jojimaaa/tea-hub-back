@@ -1,15 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routes import data_routes, auth_routes, wiki_routes
-from .database import engine
-from . import models
+from .routes import auth, data, wiki, forum, user
+from .database import engine, Base
 
 app = FastAPI()
 
 origins = [
     "http://localhost:3000",
-    "http://192.168.56.1:3000"
+    "http://localhost:3001",
+    "http://192.168.56.1:3000",
+    "http://192.168.56.1:3001",
+    "tea-hub-front-dev-git-feat-forumlist-enzos-projects-b920b2f9.vercel.app",
+    "tea-hub-front-qmigvonx3-enzos-projects-b920b2f9.vercel.app"
 ]
 
 app.add_middleware(
@@ -20,12 +23,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-models.Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)
 
 try:
-    app.include_router(data_routes.router, prefix="/data", tags=["dados"])
-    app.include_router(auth_routes.router)
-    app.include_router(wiki_routes.router)
+    app.include_router(data.router)
+    app.include_router(auth.router)
+    app.include_router(wiki.router)
+    app.include_router(forum.router)
+    app.include_router(user.router)
 except Exception as e:
     print(f"[main] Aviso: router de dados não incluído: {e}")
 
