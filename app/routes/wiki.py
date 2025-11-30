@@ -70,10 +70,10 @@ async def delete_topic(topic_id: int, db: db_dependency):
 @router.get("/search", response_model=list[WikiPostOut])
 async def search_posts(
     db: db_dependency,
-    topic_id: str | None = None,
+    topic_id: int | None = None,
     created_from: datetime | None = None,
     author_name: str | None = None,
-    title: int | None = None,
+    title: str | None = None,
 ):
     filters = []
 
