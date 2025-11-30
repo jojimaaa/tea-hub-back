@@ -1,10 +1,9 @@
-from sqlalchemy import (
-    Integer, Boolean, Column, String
-)
+from sqlalchemy import Integer, Boolean, Column, String
 from app.database import Base
 
+
 class User(Base):
-    __tablename__ = 'tb_users'
+    __tablename__ = "tb_users"
 
     id = Column(Integer, primary_key=True)
     name = Column(String(255))

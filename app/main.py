@@ -12,7 +12,7 @@ origins = [
     "http://192.168.56.1:3000",
     "http://192.168.56.1:3001",
     "tea-hub-front-dev-git-feat-forumlist-enzos-projects-b920b2f9.vercel.app",
-    "tea-hub-front-qmigvonx3-enzos-projects-b920b2f9.vercel.app"
+    "tea-hub-front-qmigvonx3-enzos-projects-b920b2f9.vercel.app",
 ]
 
 app.add_middleware(
@@ -33,6 +33,7 @@ try:
     app.include_router(user.router)
 except Exception as e:
     print(f"[main] Aviso: router de dados não incluído: {e}")
+
 
 # ------------------- utilidades simples -------------------
 @app.get("/")
