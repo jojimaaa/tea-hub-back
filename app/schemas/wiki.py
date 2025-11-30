@@ -4,6 +4,18 @@ from fastapi import UploadFile
 from datetime import datetime
 
 
+# ---------- TOPICS ----------
+class WikiTopicCreate(BaseModel):
+    name: str
+
+    model_config = {"from_attributes": True}
+
+
+class WikiTopicOut(BaseModel):
+    id: int
+    name: str
+
+
 # ---------- POSTS ----------
 class WikiPostCreate(BaseModel):
     title: str
@@ -29,17 +41,5 @@ class WikiPostOut(BaseModel):
     body: str
     author_name: str
     created_date: datetime
-    topic_id: int
+    topic: WikiTopicOut
     image_url: str
-
-
-# ---------- TOPICS ----------
-class WikiTopicCreate(BaseModel):
-    name: str
-
-    model_config = {"from_attributes": True}
-
-
-class WikiTopicOut(BaseModel):
-    id: int
-    name: str

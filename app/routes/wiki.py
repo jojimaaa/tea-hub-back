@@ -97,7 +97,7 @@ async def search_posts(
     posts_out = []
 
     for post in posts:
-        post_out = get_post_dto(post)
+        post_out = get_post_dto(post, db)
         posts_out.append(post_out)
 
     return posts_out
@@ -130,7 +130,7 @@ async def get_recommended_posts(db: db_dependency):
             raise
         if post is not None:
             taken_ids.add(random_id)
-            posts_out.append(get_post_dto(post))
+            posts_out.append(get_post_dto(post, db))
 
     return posts_out
 
@@ -140,7 +140,7 @@ async def get_recent_posts(db: db_dependency):
     posts = db.query(WikiPosts).order_by(WikiPosts.created_date.desc()).limit(4).all()
     posts_out: list[WikiPostOut] = []
     for post in posts:
-        post_out = get_post_dto(post)
+        post_out = get_post_dto(post, db)
         posts_out.append(post_out)
     return posts_out
 
@@ -164,7 +164,7 @@ async def edit_wiki_post(db: db_dependency, id: int, data: WikiPostUpdate):
     db.commit()
     db.refresh(post)
 
-    post_out = get_post_dto(post)
+    post_out = get_post_dto(post, db)
 
     return post_out
 
@@ -197,7 +197,7 @@ async def create_wiki_post(
     db.commit()
     db.refresh(new_post)
 
-    post_out = get_post_dto(new_post)
+    post_out = get_post_dto(new_post, db)
 
     return post_out
 
@@ -216,6 +216,6 @@ async def get_wiki_post(id: int, db: db_dependency):
 
     post = get_post(id, db)
 
-    post_out = get_post_dto(post)
+    post_out = get_post_dto(post, db)
 
     return post_out

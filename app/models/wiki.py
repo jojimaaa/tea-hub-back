@@ -20,7 +20,7 @@ class WikiPosts(Base):
     body = Column(Text, nullable=False)
     author_name = Column(String(255), nullable=False)
     created_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    topic_id = Column(String, ForeignKey("tb_wiki_topics.id"))
+    topic_id = Column(Integer, ForeignKey("tb_wiki_topics.id"))
     image_url = Column(String(255))
 
 
