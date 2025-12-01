@@ -102,7 +102,7 @@ async def search_forum_post(
     posts = posts_query.order_by(ForumPosts.created_at.desc()).all()
 
     if title is not None:
-        posts = search_by_title(title, posts, amount=15)
+        posts = search_by_title(title, posts)
 
     posts_out = []
     for post in posts:

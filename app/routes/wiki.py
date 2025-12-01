@@ -1,4 +1,4 @@
-from fastapi import HTTPException, APIRouter, status, UploadFile, File
+from fastapi import HTTPException, APIRouter, status, UploadFile, File, Form
 from fastapi.responses import RedirectResponse
 from app.database import db_dependency
 from app.services.wiki import *
@@ -92,7 +92,7 @@ async def search_posts(
     posts = posts_query.all()
 
     if title is not None:
-        posts = search_by_title(title, posts, amount=15)
+        posts = search_by_title(title, posts)
 
     posts_out = []
 
@@ -146,27 +146,41 @@ async def get_recent_posts(db: db_dependency):
 
 
 @router.patch("/edit/{id}", response_model=WikiPostOut)
-async def edit_wiki_post(db: db_dependency, id: int, data: WikiPostUpdate):
+async def edit_wiki_post(
+    id: int,
+    db: db_dependency,
+    title: str | None = Form(None),
+    body: str | None = Form(None),
+    author_name: str | None = Form(None),
+    topic_id: str | None = Form(None),
+    image: UploadFile | None = File(None)
+):
     post = get_post(id, db)
 
-    check_for_title(data.title)
+    def valid(value):
+        return value not in (None, "")
 
-    for attr, value in data.model_dump(exclude_unset=True).items():
-        if attr == "title":
-            post.title = value
-            post.normalized_title = normalize(value)
-        else:
-            setattr(post, attr, value)
+    if valid(title):
+        check_for_title(title)
+        post.title = title
+        post.normalized_title = normalize(title)
 
-    if data.image is not None:
-        post.image_url = await upload_image_to_cloudinary(data.image)
+    if valid(body):
+        post.body = body
+
+    if valid(author_name):
+        post.author_name = author_name
+
+    if valid(topic_id):
+        post.topic_id = int(topic_id)
+
+    if image is not None:
+        post.image_url = await upload_image_to_cloudinary(image)
 
     db.commit()
     db.refresh(post)
 
-    post_out = get_post_dto(post, db)
-
-    return post_out
+    return get_post_dto(post, db)
 
 
 @router.post("/upload-wiki-post", response_model=WikiPostOut)

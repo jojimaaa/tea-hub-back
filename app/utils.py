@@ -1,6 +1,5 @@
 import unicodedata
-from rapidfuzz import fuzz, process, utils
-from app.models.wiki import WikiPosts
+from rapidfuzz import process, fuzz, utils
 
 
 def normalize(text: str) -> str:
@@ -10,14 +9,18 @@ def normalize(text: str) -> str:
     return text
 
 
-def search_by_title(
-    title: str, wiki_posts: list[WikiPosts], amount: int
-) -> list[WikiPosts]:
-    wiki_titles = [wiki.title for wiki in wiki_posts]
+def search_by_title(title: str, posts: list) -> list:
+    titles = [post.title for post in posts]
     matches = process.extract(
-        title, wiki_titles, limit=amount, processor=utils.default_process
+        title, titles, scorer=fuzz.WRatio,score_cutoff=60, processor=utils.default_process
     )
 
-    wiki_post_list = [wiki_posts[index] for _, _, index in matches]
+    post_list = [posts[index] for _, _, index in matches]
 
-    return wiki_post_list
+    for matched_title, score, index in matches:
+        print({
+            "score": score,
+            "title": matched_title
+        })
+
+    return post_list

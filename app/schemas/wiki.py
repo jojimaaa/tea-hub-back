@@ -31,7 +31,6 @@ class WikiPostUpdate(BaseModel):
     body: Optional[str] = None
     author_name: Optional[str] = None
     topic_id: Optional[int] = None
-    image: Optional[UploadFile] = None
 
 
 class WikiPostOut(BaseModel):
