@@ -12,14 +12,14 @@ import matplotlib.pyplot as plt
 
 from app.database import SessionLocal
 from app import models
-from app.services.data_service import (
+from app.services.data import (
     get_or_create_source,
     get_or_create_indicator,
     upsert_observations,
 )
 from app.data.ibge_xlsx import read_ibge_uf_total_from_xlsx
 
-router = APIRouter()
+router = APIRouter(prefix="/data", tags=["Dados"])
 
 
 # ------------------------- DB SESSION -------------------------

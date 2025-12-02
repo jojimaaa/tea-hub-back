@@ -1,2 +1,8 @@
 .venv/
 .gitignore
+__pycache__
+app/__pycache__
+app/data/__pycache__
+app/routes/__pycache__
+app/services/__pycache__
+.vercel

@@ -11,7 +11,7 @@ Passos para instalar:
 py -m venv .venv
 
 #ativar venv
-./.venv/Scripts/Activate.ps1
+./.venv/Scripts/activate
 
 #instalar dependências
 pip install -r requirements.txt

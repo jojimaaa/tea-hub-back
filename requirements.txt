@@ -13,6 +13,8 @@ pyarrow             # to_parquet / performance
 requests
 tqdm
 pydantic
+cloudinary
+rapidfuzz
 
 # Geo e mapas (opcional, útil c/ IBGE e shapefiles)
 geopandas
@@ -31,7 +33,7 @@ plotly
 
 annotated-types==0.7.0
 anyio==4.11.0
-bcrypt==5.0.0
+bcrypt==3.2.2
 cffi==2.0.0
 click==8.3.0
 colorama==0.4.6
@@ -58,3 +60,4 @@ starlette==0.48.0
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 uvicorn==0.37.0
+base36
