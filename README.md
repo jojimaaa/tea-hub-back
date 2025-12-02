@@ -20,3 +20,5 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 ## [Acesse a documentação](http://127.0.0.1:8000/docs)
+
+## [Acesse o deploy na Railway](https://tea-hub-back-production.up.railway.app)
